@@ -52,11 +52,25 @@ Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float z
 }
 
 Eigen::Matrix4f get_rotation(Vector3f axis, float angle) {
+    axis.normalize();
+    Eigen::Matrix3f Rodrigues_Rotation = Eigen::Matrix3f::Identity();
+    Eigen::Matrix3f Matrix_n;
+    Matrix_n <<
+        0, -axis.z(), axis.y(),
+        axis.z(), 0, -axis.x(),
+        -axis.y(), axis.x(), 0;
+    Rodrigues_Rotation = 
+        Eigen::Matrix3f::Identity() +
+        (1 - cosf(angle * MY_PI / 180.0)) * Matrix_n * Matrix_n +
+        sinf(angle * MY_PI / 180.0) * Matrix_n;
+    Eigen::Matrix4f Rodrigues_Matrix = Eigen::Matrix4f::Identity();
+    Rodrigues_Matrix << 
+        Rodrigues_Rotation(0, 0), Rodrigues_Rotation(0, 1), Rodrigues_Rotation(0, 2), 0,
+        Rodrigues_Rotation(1, 0), Rodrigues_Rotation(1, 1), Rodrigues_Rotation(1, 2), 0,
+        Rodrigues_Rotation(2, 0), Rodrigues_Rotation(2, 1), Rodrigues_Rotation(2, 2), 0,
+        0, 0, 0, 1;
 
-
-
-
-
+    return Rodrigues_Matrix;
 }
 
 int main(int argc, const char** argv)
@@ -69,7 +83,7 @@ int main(int argc, const char** argv)
         command_line = true;
         angle = std::stof(argv[2]); // -r by default
         if (argc == 4) {
-            filename = std::string(argv[3]);
+            filename = "output/" + std::string(argv[3]);
         }
         else
             return 0;
@@ -85,6 +99,8 @@ int main(int argc, const char** argv)
 
     auto pos_id = r.load_positions(pos);
     auto ind_id = r.load_indices(ind);
+
+
 
     int key = 0;
     int frame_count = 0;
@@ -107,8 +123,10 @@ int main(int argc, const char** argv)
 
     while (key != 27) {
         r.clear(rst::Buffers::Color | rst::Buffers::Depth);
-
-        r.set_model(get_model_matrix(angle));
+        
+        //r.set_model(get_model_matrix(angle));
+        r.set_model(get_rotation(Vector3f(1, 1, 1), angle));
+        
         r.set_view(get_view_matrix(eye_pos));
         r.set_projection(get_projection_matrix(45, 1, 0.1, 50));
 
