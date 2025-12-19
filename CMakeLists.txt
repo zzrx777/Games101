@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
 
-
 # 告诉 vcpkg 在配置阶段自动安装 vcpkg.json 里的依赖
 set(VCPKG_MANIFEST_INSTALL ON CACHE BOOL "")
 

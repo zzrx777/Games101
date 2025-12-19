@@ -10,7 +10,7 @@ add_executable(
 	source/Triangle.cpp
 	source/rasterizer.cpp
 	source/main.cpp
-)
+ "launch.vs.json")
 
 # 告诉编译器：头文件在哪
 target_include_directories(
