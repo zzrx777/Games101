@@ -19,3 +19,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 添加各 Assignment
 add_subdirectory(Assignment0)
 add_subdirectory(Assignment1)
+add_subdirectory(Assignment2)
