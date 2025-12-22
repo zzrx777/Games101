@@ -79,10 +79,7 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
     auto& buf = pos_buf[pos_buffer.pos_id];
     auto& ind = ind_buf[ind_buffer.ind_id];
     auto& col = col_buf[col_buffer.col_id];
-
-    float f1 = (50 - 0.1) / 2.0;
-    float f2 = (50 + 0.1) / 2.0;
-
+ 
     Eigen::Matrix4f mvp = projection * view * model;
     for (auto& i : ind)
     {
@@ -100,15 +97,12 @@ void rst::rasterizer::draw(pos_buf_id pos_buffer, ind_buf_id ind_buffer, col_buf
         for (auto& vert : v)
         {
             vert.x() = 0.5 * (vert.x() + 1.0) * width ;
-            vert.y() = 0.5 * (vert.y() + 1.0) * height;
-            vert.z() = -vert.z() * f1 + f2;
+            vert.y() = 0.5 * (vert.y() + 1.0) * height;           
         }
 
         for (int i = 0; i < 3; ++i)
         {
-            t.setVertex(i, v[i].head<3>());
-            t.setVertex(i, v[i].head<3>());
-            t.setVertex(i, v[i].head<3>());
+            t.setVertex(i, v[i].head<3>());        
         }
 
         auto col_x = col[i[0]];
