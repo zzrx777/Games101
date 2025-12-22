@@ -363,5 +363,5 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # Allow Wavefront model files
-!Models/**/*.obj
-!models/**/*.obj
+!Assignment*/models/
+!Assignment*/models/**/*.obj
