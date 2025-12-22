@@ -21,6 +21,11 @@ target_include_directories(Assignment3
 		${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+target_compile_definitions(Assignment3 
+	PRIVATE 
+		ASSIGNMENT3_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+)
+
 # “¿¿µ Eigen
 find_package(Eigen3 CONFIG REQUIRED)
 target_link_libraries(Assignment3 PRIVATE Eigen3::Eigen)

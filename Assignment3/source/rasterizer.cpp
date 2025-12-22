@@ -256,9 +256,37 @@ static Eigen::Vector2f interpolate(float alpha, float beta, float gamma, const E
 //Screen space rasterization
 void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eigen::Vector3f, 3>& view_pos) 
 {
-   
-    
-    
+    float boundingbox_left = std::min({ t.a().x(),t.b().x(),t.c().x() });
+    float boundingbox_down = std::min({ t.a().y(),t.b().y(),t.c().y() });
+    float boundingbox_right = ceil(std::max({ t.a().x(),t.b().x(),t.c().x() }));
+    float boundingbox_up = ceil(std::max({ t.a().y(),t.b().y(),t.c().y() }));
+
+    for (int i(boundingbox_left); i < boundingbox_right; i++) {
+        for (int j(boundingbox_down); j < boundingbox_up; j++) {
+            if (insideTriangle(i, j, t.v)) {
+                auto [alpha, beta, gamma] = computeBarycentric2D(i, j, t.v);
+                
+                float Z = 1.0 / (alpha / t.a().w() + beta / t.b().w() + gamma / t.c().w());
+                float zp = alpha * t.a().z() / t.a().w() + beta * t.b().z() / t.b().w() + gamma * t.c().z() / t.c().w();
+                zp *= Z;
+
+                auto interpolated_color = interpolate(alpha, beta, gamma, t.color[0], t.color[1], t.color[2], 1.0);              
+                auto interpolated_normal = interpolate(alpha, beta, gamma, t.normal[0], t.normal[1], t.normal[2], 1.0);
+                auto interpolated_texcoords = interpolate(alpha, beta, gamma, t.tex_coords[0], t.tex_coords[1], t.tex_coords[2], 1.0);
+                
+
+                fragment_shader_payload payload(interpolated_color, interpolated_normal.normalized(), interpolated_texcoords, nullptr);
+                auto fragment_color = fragment_shader(payload);
+
+                int buff_index = get_index(i, j);
+                if (zp < depth_buf[buff_index]) {
+                    depth_buf[buff_index] = zp;
+                    set_pixel({ i,j }, fragment_color);
+                }
+            }
+        }
+    }
+
     // TODO: From your HW3, get the triangle rasterization code.
     // TODO: Inside your rasterization loop:
     //    * v[i].w() is the vertex view space depth value z.
