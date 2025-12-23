@@ -313,8 +313,9 @@ int main(int argc, const char** argv)
 
 	std::string filename = "output.png";
 	objl::Loader Loader;
-	std::string obj_path = std::string(ASSIGNMENT3_SOURCE_DIR) + "/models/spot/";
-	std::string obj_name = "spot_triangulated_good.obj";
+	std::string obj_path = std::string(ASSIGNMENT3_SOURCE_DIR) + "/models/rock/";
+	//std::string obj_name = "spot_triangulated_good.obj";
+	std::string obj_name = "rock.obj";
 	// Load .obj File
 	bool loadout = Loader.LoadFile(obj_path + obj_name);
 	for (auto mesh : Loader.LoadedMeshes)
@@ -338,7 +339,7 @@ int main(int argc, const char** argv)
 	rst::rasterizer r(700, 700);
 
 	auto texture_name = "hmap.jpg";
-	r.set_texture(Texture(obj_path + texture_name));
+	//r.set_texture(Texture(obj_path + texture_name));
 
 	std::function<Eigen::Vector3f(fragment_shader_payload)> active_shader = phong_fragment_shader;
 
@@ -351,7 +352,7 @@ int main(int argc, const char** argv)
 		{
 			std::cout << "Rasterizing using the texture shader\n";
 			active_shader = texture_fragment_shader;
-			texture_name = "spot_texture.png";
+			texture_name = "texture.png";
 			r.set_texture(Texture(obj_path + texture_name));
 		}
 		else if (argc == 3 && std::string(argv[2]) == "normal")

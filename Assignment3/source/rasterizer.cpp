@@ -266,8 +266,13 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t, const std::array<Eig
 {
 	int left = std::min({t.a().x(), t.b().x(), t.c().x()});
 	int down = std::min({t.a().y(), t.b().y(), t.c().y()});
-	int right = ceil(std::max({t.a().x(), t.b().x(), t.c().x()}));
+	int right =ceil(std::max({t.a().x(), t.b().x(), t.c().x()}));
 	int up = ceil(std::max({t.a().y(), t.b().y(), t.c().y()}));
+
+	left = std::clamp(left, 0, width);
+	down = std::clamp(down, 0, height);
+	right = std::clamp(right, 0, width);
+	up = std::clamp(up, 0, height);
 
 	for (int i(left); i < right; i++)
 	{
