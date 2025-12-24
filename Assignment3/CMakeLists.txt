@@ -26,10 +26,10 @@ target_compile_definitions(Assignment3
 		ASSIGNMENT3_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
-# 依赖 Eigen
+# Eigen
 find_package(Eigen3 CONFIG REQUIRED)
 target_link_libraries(Assignment3 PRIVATE Eigen3::Eigen)
 
-# OpenCV（vcpkg 提供的是 CONFIG 模式）
+# OpenCV
 find_package(OpenCV CONFIG REQUIRED)
 target_link_libraries(Assignment3 PRIVATE opencv_core opencv_imgproc opencv_highgui)
