@@ -2,6 +2,7 @@
 #include <cassert>
 #include "BVH.hpp"
 
+
 BVHAccel::BVHAccel(std::vector<Object*> p, int maxPrimsInNode, SplitMethod splitMethod)
 	: maxPrimsInNode(std::min(255, maxPrimsInNode)), splitMethod(splitMethod), primitives(std::move(p)) {
 	time_t start, stop;
@@ -10,7 +11,8 @@ BVHAccel::BVHAccel(std::vector<Object*> p, int maxPrimsInNode, SplitMethod split
 		return;
 	}
 
-	root = recursiveBuild(primitives);
+	//root = BVHBuild(primitives);
+	root = SAHBuild(primitives);
 
 	time(&stop);
 	double diff = difftime(stop, start);
@@ -21,7 +23,7 @@ BVHAccel::BVHAccel(std::vector<Object*> p, int maxPrimsInNode, SplitMethod split
 	printf("\rBVH Generation complete: \nTime Taken: %i hrs, %i mins, %i secs\n\n", hrs, mins, secs);
 }
 
-BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects) {
+BVHBuildNode* BVHAccel::BVHBuild(std::vector<Object*> objects) {
 	BVHBuildNode* node = new BVHBuildNode();
 
 	// Compute bounds of all primitives in BVH node
@@ -38,8 +40,8 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects) {
 		return node;
 	}
 	else if (objects.size() == 2) {
-		node->left = recursiveBuild(std::vector{objects[0]});
-		node->right = recursiveBuild(std::vector{objects[1]});
+		node->left = BVHBuild(std::vector{objects[0]});
+		node->right = BVHBuild(std::vector{objects[1]});
 
 		node->bounds = Union(node->left->bounds, node->right->bounds);
 		return node;
@@ -77,14 +79,108 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Object*> objects) {
 
 		assert(objects.size() == (leftshapes.size() + rightshapes.size()));
 
-		node->left = recursiveBuild(leftshapes);
-		node->right = recursiveBuild(rightshapes);
+		node->left = BVHBuild(leftshapes);
+		node->right = BVHBuild(rightshapes);
 
 		node->bounds = Union(node->left->bounds, node->right->bounds);
 	}
 
 	return node;
 }
+
+BVHBuildNode* BVHAccel::SAHBuild(std::vector<Object*> objects) {
+	BVHBuildNode* node = new BVHBuildNode();
+
+	if (objects.size() == 1) {
+		// Create leaf _BVHBuildNode_
+		node->bounds = objects[0]->getBounds();
+		node->object = objects[0];
+		node->left = nullptr;
+		node->right = nullptr;
+		return node;
+	}
+	else if (objects.size() == 2) {
+		node->left = SAHBuild(std::vector{objects[0]});
+		node->right = SAHBuild(std::vector{objects[1]});
+
+		node->bounds = Union(node->left->bounds, node->right->bounds);
+		return node;
+	}
+
+	const static float tTrav = 0.125;
+	const static int buckets_num = 7;
+
+	Bounds3 bounds3;
+	for (auto& object : objects) {
+		bounds3 = Union(bounds3, object->getBounds());
+	}
+	double bounds3_S = bounds3.SurfaceArea();
+
+	int axis = bounds3.maxExtent();
+	std::ranges::sort(objects, [axis](auto f1, auto f2) {
+		return f1->getBounds().Centroid()[axis] < f2->getBounds().Centroid()[axis];
+	});
+
+	unsigned int best_mid = 0;
+	double min_cost = std::numeric_limits<double>::max();
+
+	unsigned int mid_index = best_mid;
+	double cost = min_cost;
+
+	for (int i(1); i < buckets_num; i++) {
+		float mid = bounds3.pMin[axis] + i * bounds3.Diagonal()[axis] / buckets_num;
+		cost = 0;
+		mid_index = 0;
+
+		Bounds3 left_bounds3;
+		while (mid_index < objects.size()) {
+			if (objects[mid_index]->getBounds().Centroid()[axis] > mid) {
+				break;
+			}
+			else {
+				left_bounds3 = Union(left_bounds3, objects[mid_index]->getBounds());
+				mid_index++;
+			}
+		}
+		if (mid_index != 0) {
+			cost += left_bounds3.SurfaceArea() / bounds3_S * (mid_index - 1);
+		}
+
+		Bounds3 right_bounds3;
+		unsigned int right_index(mid_index);
+		while (right_index < objects.size()) {
+			right_bounds3 = Union(right_bounds3, objects[right_index]->getBounds());
+			right_index++;
+		}
+		if (right_index != mid_index) {
+			cost += right_bounds3.SurfaceArea() / bounds3_S * (objects.size() - mid_index);
+		}
+		cost += tTrav;
+		if (cost < min_cost) {
+			min_cost = cost;
+			best_mid = mid_index - 1;
+		}
+
+		if (best_mid == 0 || best_mid == objects.size() - 1) {
+			best_mid = (objects.size() - 1) / 2;
+		}
+	}
+
+	auto beginning = objects.begin();
+	auto middling = objects.begin() + best_mid;
+	auto ending = objects.end();
+
+	auto leftshapes = std::vector<Object*>(beginning, middling);
+	auto rightshapes = std::vector<Object*>(middling, ending);
+
+	assert(objects.size() == (leftshapes.size() + rightshapes.size()));
+
+	node->left = SAHBuild(leftshapes);
+	node->right = SAHBuild(rightshapes);
+
+	node->bounds = Union(node->left->bounds, node->right->bounds);
+}
+
 
 Intersection BVHAccel::Intersect(const Ray& ray) const {
 	Intersection isect;
@@ -97,32 +193,20 @@ Intersection BVHAccel::Intersect(const Ray& ray) const {
 Intersection BVHAccel::getIntersection(BVHBuildNode* node, const Ray& ray) const {
 	// TODO Traverse the BVH to find intersection
 	Intersection isect;
-
 	const std::array<int, 3> dirIsNeg{int(ray.direction.x > 0), int(ray.direction.y > 0), int(ray.direction.z > 0)};
 	if (node->bounds.IntersectP(ray, ray.direction_inv, dirIsNeg)) {
 		if (node->left == nullptr && node->right == nullptr) {
-			float tnear(0);
-			unsigned k(0);
-			node->object->intersect(ray, tnear, k);
-
-			float distance = std::sqrtf(dotProduct(ray.direction, ray.direction));
-			if (distance < isect.distance) {
-				isect.distance = distance;
-				isect.coords = ray.origin + tnear * ray.direction;
-				isect.obj = node->object;
-				//isect.m = dynamic_cast<MeshTriangle*>(node->object)->m;
-				//isect.normal = dynamic_cast<MeshTriangle*>(node->object)->triangles[k].normal;
-			}
+			isect = node->object->getIntersection(ray);
 			return isect;
 		}
 		else {
 			Intersection left_isect;
 			Intersection right_isect;
 			if (node->left != nullptr) {
-				Intersection left_isect = BVHAccel::getIntersection(node->left, ray);
+				left_isect = BVHAccel::getIntersection(node->left, ray);
 			}
 			if (node->right != nullptr) {
-				Intersection right_isect = BVHAccel::getIntersection(node->right, ray);
+				right_isect = BVHAccel::getIntersection(node->right, ray);
 			}
 			isect = left_isect.distance < right_isect.distance ? left_isect : right_isect;
 		}
