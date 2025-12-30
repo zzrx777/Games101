@@ -90,23 +90,14 @@ BVHBuildNode* BVHAccel::BVHBuild(std::vector<Object*> objects) {
 
 BVHBuildNode* BVHAccel::SAHBuild(std::vector<Object*> objects) {
 	BVHBuildNode* node = new BVHBuildNode();
-
 	if (objects.size() == 1) {
-		// Create leaf _BVHBuildNode_
 		node->bounds = objects[0]->getBounds();
 		node->object = objects[0];
 		node->left = nullptr;
 		node->right = nullptr;
 		return node;
 	}
-	else if (objects.size() == 2) {
-		node->left = SAHBuild(std::vector{objects[0]});
-		node->right = SAHBuild(std::vector{objects[1]});
-
-		node->bounds = Union(node->left->bounds, node->right->bounds);
-		return node;
-	}
-
+	const static float tTisect = 1;
 	const static float tTrav = 0.125;
 	const static int buckets_num = 7;
 
@@ -114,6 +105,7 @@ BVHBuildNode* BVHAccel::SAHBuild(std::vector<Object*> objects) {
 	for (auto& object : objects) {
 		bounds3 = Union(bounds3, object->getBounds());
 	}
+	node->bounds = bounds3;
 	double bounds3_S = bounds3.SurfaceArea();
 
 	int axis = bounds3.maxExtent();
@@ -137,13 +129,11 @@ BVHBuildNode* BVHAccel::SAHBuild(std::vector<Object*> objects) {
 			if (objects[mid_index]->getBounds().Centroid()[axis] > mid) {
 				break;
 			}
-			else {
-				left_bounds3 = Union(left_bounds3, objects[mid_index]->getBounds());
-				mid_index++;
-			}
+			left_bounds3 = Union(left_bounds3, objects[mid_index]->getBounds());
+			mid_index++;
 		}
 		if (mid_index != 0) {
-			cost += left_bounds3.SurfaceArea() / bounds3_S * (mid_index - 1);
+			cost += left_bounds3.SurfaceArea() / bounds3_S * (mid_index - 1) * tTisect;
 		}
 
 		Bounds3 right_bounds3;
@@ -153,32 +143,27 @@ BVHBuildNode* BVHAccel::SAHBuild(std::vector<Object*> objects) {
 			right_index++;
 		}
 		if (right_index != mid_index) {
-			cost += right_bounds3.SurfaceArea() / bounds3_S * (objects.size() - mid_index);
+			cost += right_bounds3.SurfaceArea() / bounds3_S * (objects.size() - mid_index) * tTisect;
 		}
 		cost += tTrav;
 		if (cost < min_cost) {
 			min_cost = cost;
 			best_mid = mid_index - 1;
 		}
-
-		if (best_mid == 0 || best_mid == objects.size() - 1) {
-			best_mid = (objects.size() - 1) / 2;
-		}
+	}
+	if (best_mid == 0 || best_mid == objects.size() - 1) {
+		best_mid = std::ceil((objects.size() - 1) / 2.0f);
 	}
 
-	auto beginning = objects.begin();
-	auto middling = objects.begin() + best_mid;
-	auto ending = objects.end();
-
-	auto leftshapes = std::vector<Object*>(beginning, middling);
-	auto rightshapes = std::vector<Object*>(middling, ending);
-
+	auto mid = objects.begin() + best_mid;
+	std::vector<Object*> leftshapes(objects.begin(), mid);
+	std::vector<Object*> rightshapes(mid, objects.end());
 	assert(objects.size() == (leftshapes.size() + rightshapes.size()));
 
 	node->left = SAHBuild(leftshapes);
 	node->right = SAHBuild(rightshapes);
 
-	node->bounds = Union(node->left->bounds, node->right->bounds);
+	return node;
 }
 
 
