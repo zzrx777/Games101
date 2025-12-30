@@ -4,18 +4,18 @@
 #include "Scene.hpp"
 
 #pragma once
-struct hit_payload
-{
-    float tNear;
-    uint32_t index;
-    Vector2f uv;
-    Object* hit_obj;
+struct hit_payload {
+	float tNear;
+	uint32_t index;
+	Vector2f uv;
+	Object* hit_obj;
 };
 
-class Renderer
-{
+class Renderer {
 public:
-    void Render(const Scene& scene);
+	void Render(const Scene& scene);
 
 private:
+	void MultiRayCast(const Scene& scene, float scale, float imageAspectRatio, const Vector3f& eye_pos, int spp,
+	                  int thread_n);
 };

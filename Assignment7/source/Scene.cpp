@@ -53,24 +53,62 @@ bool Scene::trace(
 }
 
 // Implementation of Path Tracing
-Vector3f Scene::castRay(const Ray& ray, int depth) const {
-	Vector3f color = Vector3f{0.0, 0.0, 0.0};
+Vector3f Scene::castRay(const Ray& ray_in, int depth) const {
+	Vector3f L_dir = Vector3f();
+	Vector3f L_indir = Vector3f();
 
-	Intersection ray_intersection = intersect(ray);
-	if (ray_intersection.m->hasEmission()) {
-		if (depth == 0) { //视线与光源直接相交
-			color = ray_intersection.m->getEmission();
-		}
-		for (auto light : lights) {
-			Intersection light_sample_point;
-			float sample_point_pdf;
-			sampleLight(light_sample_point, sample_point_pdf);
-			Ray pointToLight = Ray(ray.origin, (light_sample_point.coords - ray.origin).normalized());
-			pointToLight.transformToLine(light_sample_point.coords);
-			Intersection pointToLight_intersection = intersect(ray);
-			if (pointToLight_intersection.distance < pointToLight.t_max) { //被遮挡
-				continue;
-			}
+	Intersection ray_in_isect = intersect(ray_in);
+
+	if (!ray_in_isect.happened) {
+		return {};
+	}
+
+	if (ray_in_isect.m->hasEmission()) {
+		if (depth == 0) { //视线直接射到光源上
+			L_dir = ray_in_isect.m->getEmission();
+			return L_dir;
 		}
 	}
+
+	for (auto& light : lights) {
+		Intersection light_sample_point;
+		float light_sample_point_pdf;
+		sampleLight(light_sample_point, light_sample_point_pdf);
+
+		Vector3f ray_out_ori = ray_in_isect.coords;
+		Vector3f ray_out_dir = (light_sample_point.coords - ray_in_isect.coords).normalized();
+		Ray ray_ori_to_light = Ray(ray_out_ori, ray_out_dir);
+		ray_ori_to_light.transformToLine(light_sample_point.coords);
+
+		Intersection ray_ori_to_light_isect = intersect(ray_in);
+		if (ray_ori_to_light_isect.distance < ray_ori_to_light.t_max) { //被遮挡
+			continue;
+		}
+
+		L_dir +=
+			castRay(ray_ori_to_light, depth + 1)
+			* dotProduct(-ray_ori_to_light.direction, ray_ori_to_light_isect.normal)
+			* dotProduct(ray_ori_to_light.direction, ray_in_isect.normal)
+			/ ray_ori_to_light(ray_ori_to_light.t_max).norm()
+			/ light_sample_point_pdf;
+	}
+
+	float fire = get_random_float();
+	if (fire < RussianRoulette) {
+		Vector3f ray_out_ori = ray_in_isect.coords;
+		Vector3f ray_out_dir = ray_in_isect.m->sample(ray_in.direction, ray_in_isect.normal);
+		Ray ray_out = Ray(ray_out_ori, ray_out_dir);
+
+		Intersection ray_out_isect = intersect(ray_out);
+		if (ray_out_isect.happened && !ray_out_isect.m->hasEmission()) {
+			L_indir =
+				castRay(ray_out, depth + 1)
+				* dotProduct(ray_out_dir, ray_out_isect.normal)
+				* ray_in_isect.m->eval(ray_in.direction, ray_out_dir, ray_out_isect.normal)
+				/ ray_in_isect.m->pdf(ray_in.direction, ray_out_dir, ray_out_isect.normal)
+				/ RussianRoulette;
+		}
+	}
+
+	return L_dir + L_indir;
 }
