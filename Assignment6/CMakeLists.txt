@@ -17,6 +17,7 @@ add_executable(Assignment6
     include/Ray.hpp 
     include/Material.hpp 
     include/Intersection.hpp
+    include/OBJ_Loader.hpp
 
     source/Renderer.cpp 
     source/Vector.cpp

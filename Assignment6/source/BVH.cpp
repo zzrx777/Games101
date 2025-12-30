@@ -97,6 +97,7 @@ BVHBuildNode* BVHAccel::SAHBuild(std::vector<Object*> objects) {
 		node->right = nullptr;
 		return node;
 	}
+
 	const static float tTisect = 1;
 	const static float tTrav = 0.125;
 	const static int buckets_num = 7;
@@ -116,39 +117,31 @@ BVHBuildNode* BVHAccel::SAHBuild(std::vector<Object*> objects) {
 	unsigned int best_mid = 0;
 	double min_cost = std::numeric_limits<double>::max();
 
-	unsigned int mid_index = best_mid;
-	double cost = min_cost;
-
 	for (int i(1); i < buckets_num; i++) {
 		float mid = bounds3.pMin[axis] + i * bounds3.Diagonal()[axis] / buckets_num;
-		cost = 0;
-		mid_index = 0;
-
+		unsigned int current_mid = 0;
+		double cost = min_cost;
 		Bounds3 left_bounds3;
-		while (mid_index < objects.size()) {
-			if (objects[mid_index]->getBounds().Centroid()[axis] > mid) {
-				break;
-			}
-			left_bounds3 = Union(left_bounds3, objects[mid_index]->getBounds());
-			mid_index++;
-		}
-		if (mid_index != 0) {
-			cost += left_bounds3.SurfaceArea() / bounds3_S * (mid_index - 1) * tTisect;
-		}
-
 		Bounds3 right_bounds3;
-		unsigned int right_index(mid_index);
-		while (right_index < objects.size()) {
-			right_bounds3 = Union(right_bounds3, objects[right_index]->getBounds());
-			right_index++;
+		for (unsigned j(0); j < objects.size(); j++) {
+			if (objects[j]->getBounds().Centroid()[axis] <= mid) {
+				left_bounds3 = Union(left_bounds3, objects[j]->getBounds());
+			}
+			else {
+				if (current_mid == 0) {
+					current_mid = j;
+				}
+				right_bounds3 = Union(right_bounds3, objects[j]->getBounds());
+			}
 		}
-		if (right_index != mid_index) {
-			cost += right_bounds3.SurfaceArea() / bounds3_S * (objects.size() - mid_index) * tTisect;
-		}
-		cost += tTrav;
+		cost = (
+			left_bounds3.SurfaceArea() * (current_mid - 1) +
+			right_bounds3.SurfaceArea() * (objects.size() - current_mid)
+		) * tTisect / bounds3.SurfaceArea() + tTrav;
+
 		if (cost < min_cost) {
 			min_cost = cost;
-			best_mid = mid_index - 1;
+			best_mid = current_mid;
 		}
 	}
 	if (best_mid == 0 || best_mid == objects.size() - 1) {
