@@ -256,14 +256,12 @@ inline Intersection Triangle::getIntersection(Ray ray) {
 		return inter;
 
 	// TODO find ray triangle intersection
-
+	inter.happened = true;
 	inter.coords = ray(t_tmp);
 	inter.normal = normal;
 	inter.distance = t_tmp;
-	inter.m = m;
 	inter.obj = this;
-	inter.happened = true;
-
+	inter.m = m;
 	return inter;
 }
 

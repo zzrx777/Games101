@@ -21,10 +21,6 @@ struct Ray {
 
 	Vector3f operator()(double t) const { return origin + direction * t; }
 
-	void transformToLine(const Vector3f& endPoint) {
-		t_max = std::sqrtf((endPoint - origin).norm() / direction.norm());
-	}
-
 	friend std::ostream& operator<<(std::ostream& os, const Ray& r) {
 		os << "[origin:=" << r.origin << ", direction=" << r.direction << ", time=" << r.t << "]\n";
 		return os;
