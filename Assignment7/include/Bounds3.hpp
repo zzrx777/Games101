@@ -105,7 +105,7 @@ inline bool Bounds3::IntersectP(const Ray& ray, const Vector3f& invDir,
 			tOutMin = std::min(tOutMin, t0);
 		}
 	}
-	bool isIntersect = tInMax < tOutMin && tOutMin > 0;
+	bool isIntersect = tInMax <= tOutMin && tOutMin >= 0;
 	return isIntersect;
 }
 
