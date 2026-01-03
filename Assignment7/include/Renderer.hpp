@@ -2,6 +2,7 @@
 // Created by goksu on 2/25/20.
 //
 #include "Scene.hpp"
+#include "TaskQueue.hpp"
 
 #pragma once
 struct hit_payload {
@@ -13,9 +14,12 @@ struct hit_payload {
 
 class Renderer {
 public:
+	Renderer(int screen_width, int screen_height);
 	void Render(const Scene& scene);
+	void Save(const Scene& scene);
 
 private:
-	void MultiRayCast(const Scene& scene, float scale, float imageAspectRatio, const Vector3f& eye_pos, int spp,
-	                  int thread_n);
+	void rayCastWork(TaskQueue& queue, const Scene& scene, int spp);
+
+	std::vector<Vector3f> framebuffer;
 };
