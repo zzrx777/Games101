@@ -17,14 +17,15 @@ add_executable(Assignment7
     include/Scene.hpp
     include/Sphere.hpp
     include/Triangle.hpp  
-    include/Vector.hpp 
+    include/Vector.hpp
+    include/TaskQueue.hpp
     
     source/BVH.cpp
     source/main.cpp
     source/Renderer.cpp 
     source/Scene.cpp
     source/Vector.cpp     
-)
+ )
 
 target_include_directories(Assignment7 
 	PRIVATE
