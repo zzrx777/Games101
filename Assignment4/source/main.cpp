@@ -93,7 +93,7 @@ int main() {
 			bezier(control_points, window);
 
 			cv::imshow("Bezier Curve", window);
-			cv::imwrite("image/my_bezier_curve.png", window);
+			cv::imwrite("my_bezier_curve.png", window);
 			key = cv::waitKey(0);
 
 			return 0;

@@ -7,7 +7,7 @@ if(NOT DEFINED ENV{VCPKG_ROOT})
     message(FATAL_ERROR "环境变量 VCPKG_ROOT 未设置，请先下载 vcpkg 并设置 VCPKG_ROOT")
 endif()
 
-#set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 
 # 项目信息
 project(Games101)
