@@ -1,4 +1,4 @@
-# Games101 作业环境一键部署 (Windows)
+# Games101 作业环境部署 (Windows)
 基于 Visual Studio 2026、CMake(安装vs2026时把CMake选上)和vcpkg。<br>
 一、安装vcpkg，并配置环境变量。<br>
   （1）安装vcpkg<br>
