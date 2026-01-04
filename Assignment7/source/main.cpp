@@ -27,6 +27,14 @@ int main(int argc, char** argv) {
 				0.737f + 0.642f, 0.737f + 0.159f, 0.737f)));
 	light->Kd = Vector3f(0.65f);
 
+
+	Material* Microfacet = new Material(MICROFACET, Vector3f(0.0f));
+	Microfacet->Kd = Vector3f(0.5, 0.5, 0.5);
+	Microfacet->Ks = Vector3f(0.5, 0.5, 0.5);
+	Microfacet->ior = 2;
+
+	Sphere sphere(Vector3f(140, 250, 200), 50, Microfacet);
+
 	MeshTriangle floor(std::string(ASSIGNMENT7_SOURCE_DIR) + "/models/cornellbox/floor.obj", white);
 	MeshTriangle shortbox(std::string(ASSIGNMENT7_SOURCE_DIR) + "/models/cornellbox/shortbox.obj", white);
 	MeshTriangle tallbox(std::string(ASSIGNMENT7_SOURCE_DIR) + "/models/cornellbox/tallbox.obj", white);
@@ -40,6 +48,7 @@ int main(int argc, char** argv) {
 	scene.Add(&left);
 	scene.Add(&right);
 	scene.Add(&light_);
+	scene.Add(&sphere);
 
 	scene.buildBVH();
 

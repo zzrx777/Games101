@@ -83,6 +83,9 @@ Vector3f Scene::castRay(const Ray& ray_in, int depth) const {
 	float ori_to_isect_distance_square = dotProduct(ori_to_isect_line, ori_to_isect_line);
 
 	if (ray_ori_to_light_isect.happened && ray_ori_to_light_isect.m->hasEmission()) {
+		//if (ray_in_isect.m->getType() == MICROFACET) {
+		//	std::cout << "now!" << '\n';
+		//}
 		L_dir =
 			ray_ori_to_light_isect.m->getEmission()
 			* ray_in_isect.m->eval(ray_in.direction, ray_ori_to_light.direction, ray_in_isect.normal)

@@ -7,7 +7,7 @@
 
 #include "Vector.hpp"
 
-enum MaterialType { DIFFUSE, Microfacet };
+enum MaterialType { DIFFUSE, MICROFACET };
 
 class Material {
 private:
@@ -85,6 +85,32 @@ private:
 		return a.x * B + a.y * C + a.z * N;
 	}
 
+	float DistributionGGX(float NdotH, float roughness) {
+		float a = roughness * roughness;
+		float a2 = a * a;
+		float m = NdotH * NdotH * (a2 - 1) + 1;
+		return a2 / std::max(M_PI * m * m, 0.000001f);
+		//取最大值保证分母不为零或者接近于零，因为这样会导致
+		//分子除以分母的结果过大或者无穷大
+	}
+
+	float SmithG_G(float NdotV, float roughness) {
+		float r = 0.5 + roughness / 2.0f;
+		float m = r * r + (1 - r * r) * NdotV * NdotV;
+
+		return 2.0f * NdotV / (NdotV + std::sqrt(m));
+	}
+
+	//G = G1（Wi）G1（Wo）
+	float GeometrySmith_Disney(Vector3f N, Vector3f V, Vector3f L, float roughness) {
+		float NdotV = std::max(dotProduct(N, V), 0.0f);
+		float NdotL = std::max(dotProduct(N, L), 0.0f);
+		float g1 = SmithG_G(NdotL, roughness);
+		float g2 = SmithG_G(NdotV, roughness);
+
+		return g1 * g2;
+	}
+
 public:
 	MaterialType m_type;
 	//Vector3f m_color;
@@ -92,6 +118,7 @@ public:
 	float ior;
 	Vector3f Kd, Ks;
 	float specularExponent;
+	float roughness;
 	//Texture tex;
 
 	inline Material(MaterialType t = DIFFUSE, Vector3f e = Vector3f(0, 0, 0));
@@ -141,7 +168,8 @@ Vector3f Material::sample(const Vector3f& wi, const Vector3f& N) {
 
 			break;
 		}
-		case Microfacet: {
+		case MICROFACET: {
+			//Todo
 			// uniform sample on the hemisphere
 			float x_1 = get_random_float(), x_2 = get_random_float();
 			float z = std::fabs(1.0f - 2.0f * x_1);
@@ -164,7 +192,8 @@ float Material::pdf(const Vector3f& wi, const Vector3f& wo, const Vector3f& N) {
 				return 0.0f;
 			break;
 		}
-		case Microfacet: {
+		case MICROFACET: {
+			//Todo
 			// uniform sample probability 1 / (2 * PI)
 			if (dotProduct(wo, N) > 0.0f)
 				return 0.5f / M_PI;
@@ -188,13 +217,34 @@ Vector3f Material::eval(const Vector3f& wi, const Vector3f& wo, const Vector3f& 
 				return Vector3f(0.0f);
 			break;
 		}
-		case Microfacet: {
-			// calculate the contribution of diffuse   model
-			float cosalpha = dotProduct(N, wo);
-			if (cosalpha > 0.0f) {
-				float kr;
-				fresnel(wi, N, ior, kr);
+		case MICROFACET: {
+			//Todo
+			if (dotProduct(N, wo) > 0.0f) {
+				float roughness = 0.8;
+				Vector3f H = (-wi + wo).normalized();
+				float NdotH = std::max(dotProduct(N, H), 0.0f);
+				float NdotV = std::max(dotProduct(N, wo), 0.0f);
+				float NdotL = std::max(dotProduct(N, -wi), 0.0f);
 
+				float D = DistributionGGX(NdotH, roughness);
+				float G = GeometrySmith_Disney(N, wo, -wi, roughness);
+				float F;
+				fresnel(wi, N, ior, F);
+
+				//计算镜面反射的BRDF
+				float m = 4 * std::max(NdotL * NdotL, 0.00001f);
+				float Specular = D * G * F / m;
+
+				//计算反射和折射光占比（能量守恒）
+				//反射ks
+				float ks = F; //F本身反映了镜面反射的比例，所以ks = F
+				float kd = 1 - F;
+
+				//漫反射的BRDF
+				Vector3f Diffuse = Kd / M_PI;
+				//值得注意的是，这里的Kd和Ks才是对应的颜色
+				//而Specular已经乘过F了（已经考虑了Specular的占比），这里就不用再乘以ks了
+				return Diffuse * kd + Ks * Specular;
 			}
 			else
 				return Vector3f(0.0f);
